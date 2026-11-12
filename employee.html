@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OCEANIC | Employee Scanner</title>
+<title>OCEANIC | Employee Inventory Scanner</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -14,7 +14,7 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #eef3f5;
+  background: #eef7f8;
   color: #173b45;
 }
 
@@ -22,34 +22,38 @@ header {
   background: #073b49;
   color: white;
   text-align: center;
-  padding: 25px 15px;
+  padding: 24px 15px;
 }
 
 .logo {
-  font-size: 28px;
+  font-size: 29px;
   font-weight: bold;
   letter-spacing: 5px;
 }
 
+.tagline {
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 7px;
+}
+
 .container {
-  max-width: 500px;
   width: 92%;
-  margin: 25px auto;
+  max-width: 520px;
+  margin: 24px auto;
 }
 
 .card {
   background: white;
-  border-radius: 14px;
   padding: 22px;
-  box-shadow: 0 4px 15px rgba(0,0,0,.07);
+  border-radius: 15px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  margin-bottom: 18px;
 }
 
 h2 { text-align: center; }
 
-p {
-  text-align: center;
-  line-height: 1.5;
-}
+p { line-height: 1.5; }
 
 button {
   width: 100%;
@@ -58,8 +62,8 @@ button {
   border-radius: 9px;
   font-size: 15px;
   font-weight: bold;
-  margin-top: 12px;
   cursor: pointer;
+  margin-top: 10px;
 }
 
 .primary {
@@ -75,22 +79,74 @@ button {
 input {
   width: 100%;
   padding: 14px;
-  margin-top: 8px;
   border: 1px solid #b8cdd1;
   border-radius: 9px;
   font-size: 16px;
+  margin-top: 8px;
 }
 
 #reader {
-  margin-top: 15px;
+  width: 100%;
   overflow: hidden;
   border-radius: 10px;
+  margin-top: 15px;
 }
 
 #status {
   text-align: center;
-  margin-top: 15px;
   font-size: 14px;
+  margin-top: 13px;
+}
+
+#productResult, #pinSection {
+  display: none;
+}
+
+.product-photo {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  background: #f2f7f7;
+  border-radius: 12px;
+}
+
+.product-name {
+  font-size: 23px;
+  font-weight: bold;
+  margin-top: 17px;
+}
+
+.price {
+  color: #087f91;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 12px 0;
+}
+
+.detail {
+  padding: 10px 0;
+  border-bottom: 1px solid #e8eeee;
+  font-size: 14px;
+}
+
+.detail strong {
+  display: inline-block;
+  width: 125px;
+}
+
+.stock {
+  background: #edf7f7;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+.stock div {
+  margin: 8px 0;
+}
+
+.error {
+  color: #b42318;
 }
 
 footer {
@@ -106,16 +162,17 @@ footer {
 
 <header>
   <div class="logo">OCEANIC</div>
-  <p>EMPLOYEE PRODUCT SCANNER</p>
+  <div class="tagline">EMPLOYEE INVENTORY SYSTEM</div>
 </header>
 
 <div class="container">
-  <div class="card">
 
-    <h2>Inventory Lookup</h2>
+  <!-- SCANNER SECTION -->
+  <div class="card" id="scannerSection">
+    <h2>Product Scanner</h2>
 
-    <p>
-      Scan a product barcode to access its inventory information.
+    <p style="text-align:center">
+      Scan the product barcode to access inventory information.
     </p>
 
     <button class="primary" onclick="startScanner()">
@@ -133,43 +190,132 @@ footer {
 
     <hr style="border:0;border-top:1px solid #eee;margin:22px 0">
 
-    <h3>Manual Product Code</h3>
+    <h3>Manual Product Search</h3>
 
     <input id="manualCode"
       type="text"
       placeholder="Enter product code">
 
-    <button class="secondary" onclick="openEmployeeLookup()">
-      OPEN EMPLOYEE LOOKUP
+    <button class="secondary" onclick="requestPin()">
+      SEARCH PRODUCT
+    </button>
+  </div>
+
+
+  <!-- EMPLOYEE PIN SECTION -->
+  <div class="card" id="pinSection">
+    <h2>Employee Verification</h2>
+
+    <p>Enter your 6-digit employee PIN to view inventory.</p>
+
+    <input id="employeePin"
+      type="password"
+      inputmode="numeric"
+      maxlength="6"
+      placeholder="Enter employee PIN">
+
+    <button class="primary" onclick="verifyEmployee()">
+      VERIFY AND VIEW PRODUCT
+    </button>
+
+    <button class="secondary" onclick="cancelPin()">
+      CANCEL
+    </button>
+
+    <div id="pinStatus" class="error"
+      style="text-align:center;margin-top:12px"></div>
+  </div>
+
+
+  <!-- PRODUCT AND INVENTORY RESULT -->
+  <div class="card" id="productResult">
+
+    <img id="productPhoto"
+      class="product-photo"
+      alt="OCEANIC Product"
+      style="display:none">
+
+    <div id="productName" class="product-name"></div>
+
+    <div id="productPrice" class="price"></div>
+
+    <div class="detail">
+      <strong>Product Code:</strong>
+      <span id="productCode"></span>
+    </div>
+
+    <div class="detail">
+      <strong>Unit:</strong>
+      <span id="productUnit"></span>
+    </div>
+
+    <div class="detail">
+      <strong>Description:</strong>
+      <span id="productDescription"></span>
+    </div>
+
+    <div class="stock">
+      <h3>Inventory Information</h3>
+
+      <div>
+        <strong>Available Stock:</strong>
+        <span id="availableStock"></span>
+      </div>
+
+      <div>
+        <strong>Reorder Level:</strong>
+        <span id="reorderLevel"></span>
+      </div>
+
+      <div>
+        <strong>Stock Status:</strong>
+        <span id="stockStatus"></span>
+      </div>
+    </div>
+
+    <button class="primary" onclick="newScan()">
+      SCAN ANOTHER PRODUCT
     </button>
 
   </div>
+
 </div>
 
 <footer>
-  OCEANIC Employee Access
+  OCEANIC Employee Access | Inventory Lookup
 </footer>
+
 
 <script>
 
-// EXISTING GOOGLE APPS SCRIPT WEB APP
-const EMPLOYEE_URL =
+// GOOGLE APPS SCRIPT API
+const API_URL =
 "https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
 
 let scanner = null;
 let scannerRunning = false;
+let currentCode = "";
 let processing = false;
 
+
+// STATUS
 function setStatus(message) {
   document.getElementById("status").textContent = message;
 }
 
 
-// START BARCODE SCANNER
+// START CAMERA
 async function startScanner() {
+
   if (scannerRunning || processing) return;
 
+  if (!window.Html5Qrcode) {
+    setStatus("Scanner library could not load. Check your internet connection.");
+    return;
+  }
+
   try {
+
     scanner = new Html5Qrcode("reader", {
       formatsToSupport: [
         Html5QrcodeSupportedFormats.CODE_128,
@@ -189,42 +335,46 @@ async function startScanner() {
         aspectRatio: 1.5
       },
       async function(decodedText) {
+
         if (processing) return;
 
         processing = true;
+        currentCode = decodedText;
 
         document.getElementById("manualCode").value = decodedText;
 
-        setStatus("Barcode detected: " + decodedText);
-
         await stopScanner();
 
-        openEmployeeLookup(decodedText);
+        requestPin();
       },
       function() {}
     );
 
     scannerRunning = true;
+
     document.getElementById("stopButton").style.display = "block";
 
     setStatus("Camera active. Scan the product barcode.");
 
-  } catch (error) {
+  } catch(error) {
+
     scanner = null;
     scannerRunning = false;
 
-    setStatus("Unable to start camera. Please allow camera access. " + error);
+    setStatus("Unable to start camera. Allow camera access and try again. " + error);
   }
 }
 
 
 // STOP CAMERA
 async function stopScanner() {
+
   if (scanner && scannerRunning) {
+
     try {
       await scanner.stop();
       await scanner.clear();
-    } catch (error) {
+    } catch(error) {
       console.log(error);
     }
   }
@@ -236,26 +386,171 @@ async function stopScanner() {
 }
 
 
-// OPEN EXISTING EMPLOYEE LOOKUP
-function openEmployeeLookup(scannedCode) {
-  const code = String(
-    scannedCode ||
-    document.getElementById("manualCode").value ||
-    ""
-  ).trim();
+// MANUAL SEARCH - REQUEST PIN
+function requestPin() {
+
+  const code = document.getElementById("manualCode").value.trim();
 
   if (!code) {
     setStatus("Please scan or enter a product code.");
+    processing = false;
     return;
   }
 
-  setStatus("Opening employee product lookup...");
+  currentCode = code;
 
-  const destination = EMPLOYEE_URL +
-    "?view=employee&code=" +
-    encodeURIComponent(code);
+  document.getElementById("scannerSection").style.display = "none";
+  document.getElementById("productResult").style.display = "none";
+  document.getElementById("pinSection").style.display = "block";
 
-  window.location.href = destination;
+  document.getElementById("employeePin").value = "";
+  document.getElementById("pinStatus").textContent = "";
+
+  processing = false;
+}
+
+
+// CANCEL PIN
+function cancelPin() {
+
+  document.getElementById("pinSection").style.display = "none";
+  document.getElementById("scannerSection").style.display = "block";
+
+  document.getElementById("employeePin").value = "";
+
+  currentCode = "";
+  processing = false;
+}
+
+
+// VERIFY PIN AND REQUEST INVENTORY
+function verifyEmployee() {
+
+  const pin = document.getElementById("employeePin").value.trim();
+
+  if (!/^\d{6}$/.test(pin)) {
+    document.getElementById("pinStatus").textContent =
+      "Please enter your 6-digit PIN.";
+    return;
+  }
+
+  document.getElementById("pinStatus").textContent =
+    "Verifying employee access...";
+
+  const script = document.createElement("script");
+
+  const callbackName =
+    "oceanicEmployeeCallback";
+
+  window[callbackName] = function(response) {
+
+    delete window[callbackName];
+    script.remove();
+
+    if (!response.success) {
+
+      document.getElementById("pinStatus").textContent =
+        response.message || "Verification failed.";
+
+      return;
+    }
+
+    displayProduct(response.product);
+  };
+
+  script.onerror = function() {
+
+    delete window[callbackName];
+    script.remove();
+
+    document.getElementById("pinStatus").textContent =
+      "Unable to connect. Please try again.";
+  };
+
+  script.src = API_URL +
+    "?api=employee" +
+    "&code=" + encodeURIComponent(currentCode) +
+    "&pin=" + encodeURIComponent(pin) +
+    "&callback=" + callbackName;
+
+  document.body.appendChild(script);
+}
+
+
+// DISPLAY PRODUCT AND INVENTORY
+function displayProduct(product) {
+
+  document.getElementById("pinSection").style.display = "none";
+
+  document.getElementById("productResult").style.display = "block";
+
+  document.getElementById("productName").textContent =
+    product.name || "OCEANIC Product";
+
+  document.getElementById("productPrice").textContent =
+    product.price
+      ? (String(product.price).includes("₱") ? product.price : "₱" + product.price)
+      : "Price not available";
+
+  document.getElementById("productCode").textContent =
+    product.code || "";
+
+  document.getElementById("productUnit").textContent =
+    product.unit || "";
+
+  document.getElementById("productDescription").textContent =
+    product.description || "No description available.";
+
+  document.getElementById("availableStock").textContent =
+    product.availableStock || "0";
+
+  document.getElementById("reorderLevel").textContent =
+    product.reorderLevel || "0";
+
+  document.getElementById("stockStatus").textContent =
+    product.stockStatus || "Not available";
+
+  const photo = document.getElementById("productPhoto");
+
+  photo.style.display = "none";
+  photo.removeAttribute("src");
+
+  if (product.photoUrl) {
+
+    photo.onload = function() {
+      photo.style.display = "block";
+    };
+
+    photo.onerror = function() {
+      photo.style.display = "none";
+    };
+
+    photo.src = product.photoUrl;
+  }
+
+  processing = false;
+
+  document.getElementById("productResult").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+
+// START ANOTHER PRODUCT SCAN
+function newScan() {
+
+  document.getElementById("productResult").style.display = "none";
+  document.getElementById("scannerSection").style.display = "block";
+  document.getElementById("pinSection").style.display = "none";
+
+  document.getElementById("manualCode").value = "";
+  document.getElementById("employeePin").value = "";
+
+  currentCode = "";
+  processing = false;
+
+  setStatus("Ready to scan another product.");
 }
 
 </script>
