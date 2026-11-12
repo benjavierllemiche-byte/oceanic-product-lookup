@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OCEANIC | Employee Inventory Scanner</title>
+<title>MIXCARICATURE | Employee Inventory Scanner</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -161,13 +161,12 @@ footer {
 <body>
 
 <header>
-  <div class="logo">OCEANIC</div>
+  <div class="logo">MIXCARICATURE</div>
   <div class="tagline">EMPLOYEE INVENTORY SYSTEM</div>
 </header>
 
 <div class="container">
 
-  <!-- SCANNER SECTION -->
   <div class="card" id="scannerSection">
     <h2>Product Scanner</h2>
 
@@ -201,8 +200,6 @@ footer {
     </button>
   </div>
 
-
-  <!-- EMPLOYEE PIN SECTION -->
   <div class="card" id="pinSection">
     <h2>Employee Verification</h2>
 
@@ -226,13 +223,11 @@ footer {
       style="text-align:center;margin-top:12px"></div>
   </div>
 
-
-  <!-- PRODUCT AND INVENTORY RESULT -->
   <div class="card" id="productResult">
 
     <img id="productPhoto"
       class="product-photo"
-      alt="OCEANIC Product"
+      alt="MIXCARICATURE Product"
       style="display:none">
 
     <div id="productName" class="product-name"></div>
@@ -282,13 +277,11 @@ footer {
 </div>
 
 <footer>
-  OCEANIC Employee Access | Inventory Lookup
+  MIXCARICATURE | Employee Inventory Access
 </footer>
-
 
 <script>
 
-// GOOGLE APPS SCRIPT API
 const API_URL =
 "https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
 
@@ -297,8 +290,6 @@ let scannerRunning = false;
 let currentCode = "";
 let processing = false;
 
-
-// STATUS
 function setStatus(message) {
   document.getElementById("status").textContent = message;
 }
@@ -439,8 +430,7 @@ function verifyEmployee() {
 
   const script = document.createElement("script");
 
-  const callbackName =
-    "oceanicEmployeeCallback";
+  const callbackName = "oceanicEmployeeCallback";
 
   window[callbackName] = function(response) {
 
@@ -485,7 +475,7 @@ function displayProduct(product) {
   document.getElementById("productResult").style.display = "block";
 
   document.getElementById("productName").textContent =
-    product.name || "OCEANIC Product";
+    product.name || "MIXCARICATURE Product";
 
   document.getElementById("productPrice").textContent =
     product.price
