@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCEANIC | Employee Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef3f5;
+  color: #173b45;
+}
+
+header {
+  background: #073b49;
+  color: white;
+  text-align: center;
+  padding: 25px 15px;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+
+.container {
+  max-width: 500px;
+  width: 92%;
+  margin: 25px auto;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 4px 15px rgba(0,0,0,.07);
+}
+
+h2 { text-align: center; }
+
+p {
+  text-align: center;
+  line-height: 1.5;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.primary {
+  background: #087f91;
+  color: white;
+}
+
+.secondary {
+  background: #e5f1f3;
+  color: #075365;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 8px;
+  border: 1px solid #b8cdd1;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+#reader {
+  margin-top: 15px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+#status {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  color: #638087;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">OCEANIC</div>
+  <p>EMPLOYEE PRODUCT SCANNER</p>
+</header>
+
+<div class="container">
+  <div class="card">
+
+    <h2>Inventory Lookup</h2>
+
+    <p>
+      Scan a product barcode to access its inventory information.
+    </p>
+
+    <button class="primary" onclick="startScanner()">
+      SCAN PRODUCT BARCODE
+    </button>
+
+    <div id="reader"></div>
+
+    <button class="secondary" id="stopButton"
+      onclick="stopScanner()" style="display:none">
+      STOP CAMERA
+    </button>
+
+    <div id="status">Ready to scan.</div>
+
+    <hr style="border:0;border-top:1px solid #eee;margin:22px 0">
+
+    <h3>Manual Product Code</h3>
+
+    <input id="manualCode"
+      type="text"
+      placeholder="Enter product code">
+
+    <button class="secondary" onclick="openEmployeeLookup()">
+      OPEN EMPLOYEE LOOKUP
+    </button>
+
+  </div>
+</div>
+
+<footer>
+  OCEANIC Employee Access
+</footer>
+
+<script>
+
+// EXISTING GOOGLE APPS SCRIPT WEB APP
+const EMPLOYEE_URL =
+"https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
+
+let scanner = null;
+let scannerRunning = false;
+let processing = false;
+
+function setStatus(message) {
+  document.getElementById("status").textContent = message;
+}
+
+
+// START BARCODE SCANNER
+async function startScanner() {
+  if (scannerRunning || processing) return;
+
+  try {
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    });
+
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 280, height: 130 },
+        aspectRatio: 1.5
+      },
+      async function(decodedText) {
+        if (processing) return;
+
+        processing = true;
+
+        document.getElementById("manualCode").value = decodedText;
+
+        setStatus("Barcode detected: " + decodedText);
+
+        await stopScanner();
+
+        openEmployeeLookup(decodedText);
+      },
+      function() {}
+    );
+
+    scannerRunning = true;
+    document.getElementById("stopButton").style.display = "block";
+
+    setStatus("Camera active. Scan the product barcode.");
+
+  } catch (error) {
+    scanner = null;
+    scannerRunning = false;
+
+    setStatus("Unable to start camera. Please allow camera access. " + error);
+  }
+}
+
+
+// STOP CAMERA
+async function stopScanner() {
+  if (scanner && scannerRunning) {
+    try {
+      await scanner.stop();
+      await scanner.clear();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  scanner = null;
+  scannerRunning = false;
+
+  document.getElementById("stopButton").style.display = "none";
+}
+
+
+// OPEN EXISTING EMPLOYEE LOOKUP
+function openEmployeeLookup(scannedCode) {
+  const code = String(
+    scannedCode ||
+    document.getElementById("manualCode").value ||
+    ""
+  ).trim();
+
+  if (!code) {
+    setStatus("Please scan or enter a product code.");
+    return;
+  }
+
+  setStatus("Opening employee product lookup...");
+
+  const destination = EMPLOYEE_URL +
+    "?view=employee&code=" +
+    encodeURIComponent(code);
+
+  window.location.href = destination;
+}
+
+</script>
+
+</body>
+</html>
