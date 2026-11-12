@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCEANIC | Product Scanner</title>
+<title>MIXCARICATURE | Product Scanner</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -155,14 +155,14 @@ footer {
 <body>
 
 <header>
-  <div class="logo">OCEANIC</div>
-  <div class="tagline">HANDCRAFTED OCEAN-INSPIRED CREATIONS</div>
+  <div class="logo">MIXCARICATURE</div>
+  <div class="tagline">PRODUCT LOOKUP & BARCODE SCANNER</div>
 </header>
 
 <div class="container">
 
   <div class="card">
-    <h2>Discover Your OCEANIC Product</h2>
+    <h2>Discover Your Product</h2>
     <p style="text-align:center">
       Scan the barcode on your product to view its details.
     </p>
@@ -185,7 +185,7 @@ footer {
     <h3>Enter Product Code Manually</h3>
     <input id="manualCode"
       type="text"
-      placeholder="Example: OCN001-KYCNA">
+      placeholder="Enter product code">
 
     <button class="secondary" onclick="manualLookup()">
       SEARCH PRODUCT
@@ -194,7 +194,7 @@ footer {
 
   <div class="card" id="productResult">
     <img id="productPhoto" class="product-photo"
-      alt="OCEANIC product photo"
+      alt="MIXCARICATURE product photo"
       style="display:none">
 
     <div id="productName" class="product-name"></div>
@@ -219,7 +219,7 @@ footer {
 </div>
 
 <footer>
-  © OCEANIC | Handcrafted with Passion and Care
+  © MIXCARICATURE | Handcrafted with Passion and Care
 </footer>
 
 <script>
@@ -326,7 +326,7 @@ function manualLookup() {
 
 // GET PRODUCT FROM GOOGLE SHEETS
 function lookupProduct(code) {
-  setStatus("Searching OCEANIC product database...");
+  setStatus("Searching MIXCARICATURE product database...");
 
   document.getElementById("productResult").style.display = "none";
 
@@ -370,7 +370,7 @@ function displayProduct(product) {
   document.getElementById("productResult").style.display = "block";
 
   document.getElementById("productName").textContent =
-    product.name || "OCEANIC Product";
+    product.name || "MIXCARICATURE Product";
 
   document.getElementById("productPrice").textContent =
     product.price
