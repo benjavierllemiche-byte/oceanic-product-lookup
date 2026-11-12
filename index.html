@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCEANIC | Product Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef7f8;
+  color: #173b45;
+}
+
+header {
+  background: #073b49;
+  color: white;
+  text-align: center;
+  padding: 25px 15px;
+}
+
+.logo {
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+
+.tagline {
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 7px;
+}
+
+.container {
+  width: 92%;
+  max-width: 520px;
+  margin: 25px auto;
+}
+
+.card {
+  background: white;
+  padding: 22px;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.08);
+  margin-bottom: 18px;
+}
+
+h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+p { line-height: 1.5; }
+
+button {
+  border: 0;
+  border-radius: 9px;
+  padding: 14px;
+  width: 100%;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.primary {
+  background: #087f91;
+  color: white;
+}
+
+.secondary {
+  background: #e5f1f3;
+  color: #075365;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #b8cdd1;
+  border-radius: 9px;
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+#reader {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+#status {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 12px;
+  color: #45636b;
+}
+
+#productResult {
+  display: none;
+}
+
+.product-photo {
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #f2f7f7;
+}
+
+.product-name {
+  font-size: 23px;
+  font-weight: bold;
+  margin: 18px 0 8px;
+}
+
+.price {
+  font-size: 25px;
+  color: #087f91;
+  font-weight: bold;
+  margin: 12px 0;
+}
+
+.detail {
+  padding: 10px 0;
+  border-bottom: 1px solid #e8eeee;
+  font-size: 14px;
+}
+
+.detail strong {
+  display: inline-block;
+  width: 105px;
+}
+
+.description {
+  margin-top: 15px;
+  line-height: 1.6;
+}
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  color: #638087;
+  padding: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">OCEANIC</div>
+  <div class="tagline">HANDCRAFTED OCEAN-INSPIRED CREATIONS</div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Discover Your OCEANIC Product</h2>
+    <p style="text-align:center">
+      Scan the barcode on your product to view its details.
+    </p>
+
+    <button class="primary" onclick="startScanner()">
+      SCAN PRODUCT BARCODE
+    </button>
+
+    <div id="reader"></div>
+
+    <button class="secondary" id="stopButton"
+      onclick="stopScanner()" style="display:none">
+      STOP CAMERA
+    </button>
+
+    <div id="status">Ready to scan your product.</div>
+  </div>
+
+  <div class="card">
+    <h3>Enter Product Code Manually</h3>
+    <input id="manualCode"
+      type="text"
+      placeholder="Example: OCN001-KYCNA">
+
+    <button class="secondary" onclick="manualLookup()">
+      SEARCH PRODUCT
+    </button>
+  </div>
+
+  <div class="card" id="productResult">
+    <img id="productPhoto" class="product-photo"
+      alt="OCEANIC product photo"
+      style="display:none">
+
+    <div id="productName" class="product-name"></div>
+    <div id="productPrice" class="price"></div>
+
+    <div class="detail">
+      <strong>Product Code:</strong>
+      <span id="productCode"></span>
+    </div>
+
+    <div class="detail">
+      <strong>Unit:</strong>
+      <span id="productUnit"></span>
+    </div>
+
+    <div class="description">
+      <strong>Product Description</strong>
+      <p id="productDescription"></p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  © OCEANIC | Handcrafted with Passion and Care
+</footer>
+
+<script>
+
+// YOUR EXISTING GOOGLE SHEETS API
+const API_URL =
+"https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
+
+let scanner = null;
+let scannerRunning = false;
+let lookupPending = false;
+
+function setStatus(message) {
+  document.getElementById("status").textContent = message;
+}
+
+
+// START CAMERA SCANNER
+async function startScanner() {
+  if (scannerRunning) return;
+
+  if (!window.Html5Qrcode) {
+    setStatus("Scanner library could not load. Check your internet connection.");
+    return;
+  }
+
+  try {
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.QR_CODE
+      ]
+    });
+
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 280, height: 130 },
+        aspectRatio: 1.5
+      },
+      function(decodedText) {
+        if (lookupPending) return;
+
+        lookupPending = true;
+        document.getElementById("manualCode").value = decodedText;
+
+        stopScanner().then(function() {
+          lookupProduct(decodedText);
+          lookupPending = false;
+        });
+      },
+      function() {
+        // Ignore normal scanning misses.
+      }
+    );
+
+    scannerRunning = true;
+    document.getElementById("stopButton").style.display = "block";
+    setStatus("Camera is active. Point it at the barcode.");
+
+  } catch (error) {
+    scanner = null;
+    scannerRunning = false;
+    document.getElementById("stopButton").style.display = "none";
+    setStatus("Camera could not start. Allow camera access in your browser and try again. " + error);
+  }
+}
+
+
+// STOP CAMERA
+async function stopScanner() {
+  if (scanner && scannerRunning) {
+    try {
+      await scanner.stop();
+      await scanner.clear();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  scanner = null;
+  scannerRunning = false;
+  document.getElementById("stopButton").style.display = "none";
+}
+
+
+// MANUAL SEARCH
+function manualLookup() {
+  const code = document.getElementById("manualCode").value.trim();
+
+  if (!code) {
+    setStatus("Please enter a product code.");
+    return;
+  }
+
+  lookupProduct(code);
+}
+
+
+// GET PRODUCT FROM GOOGLE SHEETS
+function lookupProduct(code) {
+  setStatus("Searching OCEANIC product database...");
+
+  document.getElementById("productResult").style.display = "none";
+
+  const oldScript = document.getElementById("oceanicApiScript");
+  if (oldScript) oldScript.remove();
+
+  const script = document.createElement("script");
+  script.id = "oceanicApiScript";
+
+  const callbackName = "oceanicReceive";
+
+  window[callbackName] = function(response) {
+    delete window[callbackName];
+    script.remove();
+
+    if (!response.success) {
+      setStatus(response.message || "Product not found.");
+      return;
+    }
+
+    displayProduct(response.product);
+  };
+
+  script.onerror = function() {
+    delete window[callbackName];
+    script.remove();
+    setStatus("Unable to connect to the product database. Please try again.");
+  };
+
+  script.src = API_URL +
+    "?api=product" +
+    "&code=" + encodeURIComponent(code) +
+    "&callback=" + callbackName;
+
+  document.body.appendChild(script);
+}
+
+
+// DISPLAY PRODUCT INFORMATION
+function displayProduct(product) {
+  document.getElementById("productResult").style.display = "block";
+
+  document.getElementById("productName").textContent =
+    product.name || "OCEANIC Product";
+
+  document.getElementById("productPrice").textContent =
+    product.price
+      ? (String(product.price).includes("₱") ? product.price : "₱" + product.price)
+      : "Price not available";
+
+  document.getElementById("productCode").textContent =
+    product.code || "";
+
+  document.getElementById("productUnit").textContent =
+    product.unit || "";
+
+  document.getElementById("productDescription").textContent =
+    product.description || "No product description available.";
+
+  const photo = document.getElementById("productPhoto");
+
+  photo.style.display = "none";
+  photo.removeAttribute("src");
+
+  if (product.photoUrl) {
+    photo.onload = function() {
+      photo.style.display = "block";
+    };
+
+    photo.onerror = function() {
+      photo.style.display = "none";
+    };
+
+    photo.src = product.photoUrl;
+  }
+
+  setStatus("Product found successfully!");
+
+  document.getElementById("productResult").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+</script>
+
+</body>
+</html>
