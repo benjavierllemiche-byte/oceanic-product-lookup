@@ -4,7 +4,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>MIXCARICATURE | Employee Inventory Scanner</title>
+
+<!-- PWA SETTINGS -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#073b49">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MIXCARICATURE">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -294,7 +303,6 @@ function setStatus(message) {
   document.getElementById("status").textContent = message;
 }
 
-
 // START CAMERA
 async function startScanner() {
 
@@ -356,7 +364,6 @@ async function startScanner() {
   }
 }
 
-
 // STOP CAMERA
 async function stopScanner() {
 
@@ -375,7 +382,6 @@ async function stopScanner() {
 
   document.getElementById("stopButton").style.display = "none";
 }
-
 
 // MANUAL SEARCH - REQUEST PIN
 function requestPin() {
@@ -400,7 +406,6 @@ function requestPin() {
   processing = false;
 }
 
-
 // CANCEL PIN
 function cancelPin() {
 
@@ -412,7 +417,6 @@ function cancelPin() {
   currentCode = "";
   processing = false;
 }
-
 
 // VERIFY PIN AND REQUEST INVENTORY
 function verifyEmployee() {
@@ -429,7 +433,6 @@ function verifyEmployee() {
     "Verifying employee access...";
 
   const script = document.createElement("script");
-
   const callbackName = "oceanicEmployeeCallback";
 
   window[callbackName] = function(response) {
@@ -437,10 +440,12 @@ function verifyEmployee() {
     delete window[callbackName];
     script.remove();
 
-    if (!response.success) {
+    if (!response || !response.success) {
 
       document.getElementById("pinStatus").textContent =
-        response.message || "Verification failed.";
+        response && response.message
+          ? response.message
+          : "Verification failed.";
 
       return;
     }
@@ -466,12 +471,10 @@ function verifyEmployee() {
   document.body.appendChild(script);
 }
 
-
 // DISPLAY PRODUCT AND INVENTORY
 function displayProduct(product) {
 
   document.getElementById("pinSection").style.display = "none";
-
   document.getElementById("productResult").style.display = "block";
 
   document.getElementById("productName").textContent =
@@ -492,10 +495,10 @@ function displayProduct(product) {
     product.description || "No description available.";
 
   document.getElementById("availableStock").textContent =
-    product.availableStock || "0";
+    product.availableStock ?? "0";
 
   document.getElementById("reorderLevel").textContent =
-    product.reorderLevel || "0";
+    product.reorderLevel ?? "0";
 
   document.getElementById("stockStatus").textContent =
     product.stockStatus || "Not available";
@@ -526,7 +529,6 @@ function displayProduct(product) {
   });
 }
 
-
 // START ANOTHER PRODUCT SCAN
 function newScan() {
 
@@ -541,6 +543,26 @@ function newScan() {
   processing = false;
 
   setStatus("Ready to scan another product.");
+}
+
+// PWA SERVICE WORKER REGISTRATION
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(function(registration) {
+        console.log(
+          "MIXCARICATURE service worker registered:",
+          registration.scope
+        );
+      })
+      .catch(function(error) {
+        console.error(
+          "Service worker registration failed:",
+          error
+        );
+      });
+  });
 }
 
 </script>
