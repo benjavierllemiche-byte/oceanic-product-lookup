@@ -1,0 +1,12 @@
+
+{
+  "name": "MIXCARICATURE",
+  "short_name": "MIXCARICATURE",
+  "description": "MIXCARICATURE Product Scanner and Employee Inventory System",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef7f8",
+  "theme_color": "#073b49"
+}
