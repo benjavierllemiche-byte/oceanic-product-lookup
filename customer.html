@@ -656,7 +656,7 @@
     });
   }
 
-  // BARCODE SCANNER
+  // IMPROVED BARCODE SCANNER
 
   async function startScanner() {
     if (scannerRunning) return;
@@ -668,11 +668,8 @@
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 10,
-        qrbox: {
-          width: 250,
-          height: 150
-        },
+        fps: 15,
+
         formatsToSupport: [
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.EAN_13,
@@ -686,20 +683,24 @@
       await html5QrCode.start(
         { facingMode: "environment" },
         config,
-        function(decodedText) {
+
+        async function(decodedText) {
           document.getElementById("productCode").value =
             decodedText.trim();
 
-          stopScanner();
+          await stopScanner();
           searchProduct();
         },
+
         function() {
           // Ignore individual scan misses.
         }
       );
 
       scannerRunning = true;
-      status.textContent = "Camera active. Point it at a barcode.";
+
+      status.textContent =
+        "Camera active. Position the barcode inside the camera view.";
 
       document.getElementById("stopScannerButton").style.display =
         "block";
