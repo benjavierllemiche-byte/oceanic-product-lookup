@@ -39,7 +39,7 @@ header {
 
 .container {
   width: 92%;
-  max-width: 520px;
+  max-width: 650px;
   margin: 25px auto;
 }
 
@@ -143,11 +143,121 @@ input {
   line-height: 1.6;
 }
 
+/* PRODUCT CATALOG */
+
+.catalog-heading {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.catalog-intro {
+  text-align: center;
+  color: #638087;
+  font-size: 14px;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.catalog-item {
+  min-width: 0;
+  border: 1px solid #e3eeee;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.catalog-image {
+  width: 100%;
+  height: 155px;
+  object-fit: contain;
+  background: #f2f7f7;
+  display: block;
+}
+
+.catalog-image-placeholder {
+  height: 155px;
+  background: #f2f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #789197;
+  font-size: 12px;
+  text-align: center;
+  padding: 10px;
+}
+
+.catalog-info {
+  padding: 11px;
+}
+
+.catalog-name {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.4;
+  min-height: 39px;
+  overflow-wrap: anywhere;
+}
+
+.catalog-price {
+  font-size: 17px;
+  font-weight: bold;
+  color: #087f91;
+  margin-top: 7px;
+}
+
+.catalog-code {
+  font-size: 11px;
+  color: #789197;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.catalog-description {
+  font-size: 12px;
+  color: #567078;
+  line-height: 1.4;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.catalog-view-button {
+  padding: 10px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+#catalogStatus {
+  text-align: center;
+  color: #638087;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
 footer {
   text-align: center;
   font-size: 12px;
   color: #638087;
   padding: 20px;
+}
+
+@media (max-width: 350px) {
+  .catalog-grid {
+    gap: 8px;
+  }
+
+  .catalog-image,
+  .catalog-image-placeholder {
+    height: 125px;
+  }
+
+  .catalog-info {
+    padding: 8px;
+  }
 }
 </style>
 </head>
@@ -160,6 +270,8 @@ footer {
 </header>
 
 <div class="container">
+
+  <!-- BARCODE SCANNER -->
 
   <div class="card">
     <h2>Discover Your Product</h2>
@@ -181,6 +293,8 @@ footer {
     <div id="status">Ready to scan your product.</div>
   </div>
 
+  <!-- MANUAL PRODUCT SEARCH -->
+
   <div class="card">
     <h3>Enter Product Code Manually</h3>
     <input id="manualCode"
@@ -191,6 +305,8 @@ footer {
       SEARCH PRODUCT
     </button>
   </div>
+
+  <!-- INDIVIDUAL PRODUCT RESULT -->
 
   <div class="card" id="productResult">
     <img id="productPhoto" class="product-photo"
@@ -216,6 +332,36 @@ footer {
     </div>
   </div>
 
+  <!-- PRODUCT CATALOG -->
+
+  <div class="card" id="catalogSection">
+    <h2 class="catalog-heading">Our Product Collection</h2>
+
+    <p class="catalog-intro">
+      Explore the MIXCARICATURE product collection.
+    </p>
+
+    <button class="primary" id="catalogButton"
+      onclick="loadCatalog()">
+      VIEW ALL PRODUCTS
+    </button>
+
+    <div id="catalogContent" style="display:none">
+
+      <input id="catalogSearch"
+        type="text"
+        placeholder="Search product name or code..."
+        oninput="filterCatalog()">
+
+      <div id="catalogStatus">
+        Loading products...
+      </div>
+
+      <div class="catalog-grid" id="catalogGrid"></div>
+
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -224,13 +370,18 @@ footer {
 
 <script>
 
-// YOUR EXISTING GOOGLE SHEETS API
+// EXISTING GOOGLE SHEETS API
 const API_URL =
 "https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
 
 let scanner = null;
 let scannerRunning = false;
 let lookupPending = false;
+
+// PRODUCT CATALOG VARIABLES
+let catalogProducts = [];
+let catalogLoaded = false;
+let catalogLoading = false;
 
 function setStatus(message) {
   document.getElementById("status").textContent = message;
@@ -324,7 +475,7 @@ function manualLookup() {
 }
 
 
-// GET PRODUCT FROM GOOGLE SHEETS
+// GET INDIVIDUAL PRODUCT FROM GOOGLE SHEETS
 function lookupProduct(code) {
   setStatus("Searching MIXCARICATURE product database...");
 
@@ -365,7 +516,7 @@ function lookupProduct(code) {
 }
 
 
-// DISPLAY PRODUCT INFORMATION
+// DISPLAY INDIVIDUAL PRODUCT INFORMATION
 function displayProduct(product) {
   document.getElementById("productResult").style.display = "block";
 
@@ -408,6 +559,195 @@ function displayProduct(product) {
   document.getElementById("productResult").scrollIntoView({
     behavior: "smooth",
     block: "start"
+  });
+}
+
+
+// LOAD ALL PRODUCTS FROM GOOGLE SHEETS
+function loadCatalog() {
+  if (catalogLoaded) {
+    document.getElementById("catalogContent").style.display = "block";
+    document.getElementById("catalogButton").textContent = "REFRESH PRODUCT CATALOG";
+    renderCatalog(catalogProducts);
+    return;
+  }
+
+  if (catalogLoading) return;
+
+  catalogLoading = true;
+
+  document.getElementById("catalogContent").style.display = "block";
+  document.getElementById("catalogStatus").textContent =
+    "Loading MIXCARICATURE products...";
+
+  document.getElementById("catalogGrid").innerHTML = "";
+  document.getElementById("catalogButton").textContent = "LOADING...";
+
+  const oldScript = document.getElementById("catalogApiScript");
+  if (oldScript) oldScript.remove();
+
+  const script = document.createElement("script");
+  script.id = "catalogApiScript";
+
+  const callbackName = "mixcaricatureCatalogReceive";
+
+  window[callbackName] = function(response) {
+    delete window[callbackName];
+    script.remove();
+    catalogLoading = false;
+
+    if (!response || !response.success) {
+      document.getElementById("catalogStatus").textContent =
+        response && response.message
+          ? response.message
+          : "Unable to load products. Please try again.";
+
+      document.getElementById("catalogButton").textContent =
+        "TRY AGAIN";
+
+      return;
+    }
+
+    catalogProducts = response.products || [];
+    catalogLoaded = true;
+
+    document.getElementById("catalogButton").textContent =
+      "REFRESH PRODUCT CATALOG";
+
+    filterCatalog();
+  };
+
+  script.onerror = function() {
+    delete window[callbackName];
+    script.remove();
+    catalogLoading = false;
+
+    document.getElementById("catalogStatus").textContent =
+      "Unable to connect to the product database.";
+
+    document.getElementById("catalogButton").textContent =
+      "TRY AGAIN";
+  };
+
+  script.src = API_URL +
+    "?api=catalog" +
+    "&callback=" + callbackName;
+
+  document.body.appendChild(script);
+}
+
+
+// SEARCH PRODUCTS IN THE CATALOG
+function filterCatalog() {
+  const search = document.getElementById("catalogSearch")
+    .value.trim().toLowerCase();
+
+  const filtered = catalogProducts.filter(function(product) {
+    return (
+      String(product.name || "").toLowerCase().includes(search) ||
+      String(product.code || "").toLowerCase().includes(search) ||
+      String(product.description || "").toLowerCase().includes(search)
+    );
+  });
+
+  renderCatalog(filtered);
+}
+
+
+// DISPLAY PRODUCT GRID
+function renderCatalog(products) {
+  const grid = document.getElementById("catalogGrid");
+  const status = document.getElementById("catalogStatus");
+
+  grid.innerHTML = "";
+
+  if (catalogProducts.length === 0) {
+    status.textContent = "No products found in the database.";
+    return;
+  }
+
+  if (products.length === 0) {
+    status.textContent = "No matching products found.";
+    return;
+  }
+
+  status.textContent =
+    "Showing " + products.length + " of " +
+    catalogProducts.length + " products.";
+
+  products.forEach(function(product) {
+    const item = document.createElement("div");
+    item.className = "catalog-item";
+
+    if (product.photoUrl) {
+      const photo = document.createElement("img");
+      photo.className = "catalog-image";
+      photo.alt = product.name || "MIXCARICATURE product";
+      photo.loading = "lazy";
+
+      photo.onerror = function() {
+        const placeholder = document.createElement("div");
+        placeholder.className = "catalog-image-placeholder";
+        placeholder.textContent = "Product photo unavailable";
+        photo.replaceWith(placeholder);
+      };
+
+      photo.src = product.photoUrl;
+      item.appendChild(photo);
+
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "catalog-image-placeholder";
+      placeholder.textContent = "No product photo";
+      item.appendChild(placeholder);
+    }
+
+    const info = document.createElement("div");
+    info.className = "catalog-info";
+
+    const name = document.createElement("div");
+    name.className = "catalog-name";
+    name.textContent = product.name || "MIXCARICATURE Product";
+
+    const price = document.createElement("div");
+    price.className = "catalog-price";
+
+    price.textContent = product.price
+      ? (String(product.price).includes("₱")
+          ? product.price
+          : "₱" + product.price)
+      : "Price not available";
+
+    const code = document.createElement("div");
+    code.className = "catalog-code";
+    code.textContent = "Code: " + (product.code || "");
+
+    const description = document.createElement("div");
+    description.className = "catalog-description";
+    description.textContent =
+      product.description || "No description available.";
+
+    const viewButton = document.createElement("button");
+    viewButton.className = "primary catalog-view-button";
+    viewButton.textContent = "VIEW DETAILS";
+
+    viewButton.addEventListener("click", function() {
+      displayProduct(product);
+
+      document.getElementById("productResult").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+
+    info.appendChild(name);
+    info.appendChild(price);
+    info.appendChild(code);
+    info.appendChild(description);
+    info.appendChild(viewButton);
+
+    item.appendChild(info);
+    grid.appendChild(item);
   });
 }
 
