@@ -1,0 +1,920 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>MIXCARICATURE</title>
+
+  <!-- PWA SETTINGS -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#073b49">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MIXCARICATURE">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #eef7f8;
+      color: #173b43;
+    }
+
+    header {
+      background: #073b49;
+      color: white;
+      text-align: center;
+      padding: 24px 15px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 25px;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      margin: 7px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px 15px 40px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    }
+
+    h2 {
+      color: #073b49;
+      font-size: 18px;
+      margin: 0 0 14px;
+    }
+
+    .description {
+      color: #60777d;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: -5px 0 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #c8dadd;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #087f91;
+      box-shadow: 0 0 0 2px rgba(8,127,145,0.12);
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #087f91;
+      color: white;
+      margin-top: 5px;
+    }
+
+    button:active { opacity: 0.85; }
+
+    button.secondary {
+      background: #e4f1f3;
+      color: #073b49;
+      border: 1px solid #c8dadd;
+    }
+
+    button.small-button {
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    #reader {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+
+    #scannerStatus {
+      font-size: 13px;
+      color: #60777d;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .result {
+      display: none;
+      margin-top: 16px;
+      border-top: 1px solid #e2edef;
+      padding-top: 16px;
+    }
+
+    .product-photo {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      max-height: 300px;
+      object-fit: contain;
+      margin: 0 auto 15px;
+      border-radius: 10px;
+      background: #f5f9fa;
+    }
+
+    .product-name {
+      color: #073b49;
+      font-size: 21px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .product-code {
+      text-align: center;
+      font-size: 12px;
+      color: #71878c;
+      margin-bottom: 14px;
+    }
+
+    .product-price {
+      text-align: center;
+      font-size: 23px;
+      color: #087f91;
+      font-weight: bold;
+      margin: 12px 0;
+    }
+
+    .detail-row {
+      padding: 10px 0;
+      border-bottom: 1px solid #edf2f3;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .detail-label {
+      display: block;
+      color: #71878c;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .detail-value {
+      color: #173b43;
+      overflow-wrap: anywhere;
+    }
+
+    .message {
+      display: none;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .error {
+      background: #fff0f0;
+      color: #a32929;
+    }
+
+    .success {
+      background: #eaf7ef;
+      color: #236b3c;
+    }
+
+    .catalog-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .catalog-heading h2 { margin: 0; }
+
+    .catalog-count {
+      font-size: 12px;
+      color: #71878c;
+      white-space: nowrap;
+    }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .catalog-card {
+      border: 1px solid #e1ebed;
+      border-radius: 11px;
+      overflow: hidden;
+      background: white;
+      min-width: 0;
+    }
+
+    .catalog-card img {
+      width: 100%;
+      height: 145px;
+      object-fit: contain;
+      background: #f5f9fa;
+      display: block;
+    }
+
+    .catalog-card-content { padding: 10px; }
+
+    .catalog-card-name {
+      color: #073b49;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.35;
+      min-height: 35px;
+      overflow-wrap: anywhere;
+    }
+
+    .catalog-card-code {
+      color: #84979b;
+      font-size: 10px;
+      margin-top: 5px;
+      overflow-wrap: anywhere;
+    }
+
+    .catalog-card-price {
+      color: #087f91;
+      font-size: 15px;
+      font-weight: bold;
+      margin: 9px 0;
+    }
+
+    .catalog-card-description {
+      color: #60777d;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-bottom: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .catalog-card button {
+      font-size: 11px;
+      padding: 10px 5px;
+      margin: 0;
+    }
+
+    .empty-message {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 22px 10px;
+      color: #71878c;
+      font-size: 13px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #60777d;
+      font-size: 13px;
+      padding: 18px 5px;
+    }
+
+    footer {
+      text-align: center;
+      color: #82969a;
+      font-size: 11px;
+      padding: 10px 15px 25px;
+    }
+
+    @media (max-width: 360px) {
+      .catalog-grid { gap: 8px; }
+      .catalog-card-content { padding: 8px; }
+      .catalog-card img { height: 120px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>MIXCARICATURE</h1>
+  <p>Product Scanner & Catalogue</p>
+</header>
+
+<main class="container">
+
+  <!-- BARCODE SCANNER -->
+  <section class="panel">
+    <h2>SCAN PRODUCT BARCODE</h2>
+    <p class="description">
+      Scan the barcode on your product to view its information.
+    </p>
+
+    <button type="button" onclick="startScanner()">
+      SCAN BARCODE
+    </button>
+
+    <div id="reader"></div>
+
+    <div id="scannerStatus">
+      Scanner is currently inactive.
+    </div>
+
+    <button
+      type="button"
+      class="secondary"
+      id="stopScannerButton"
+      onclick="stopScanner()"
+      style="display:none;"
+    >
+      STOP SCANNER
+    </button>
+  </section>
+
+  <!-- MANUAL PRODUCT SEARCH -->
+  <section class="panel">
+    <h2>SEARCH PRODUCT</h2>
+    <p class="description">
+      You may also enter the product code manually.
+    </p>
+
+    <input
+      type="text"
+      id="productCode"
+      placeholder="Enter product code"
+      autocomplete="off"
+    >
+
+    <button type="button" onclick="searchProduct()">
+      SEARCH PRODUCT
+    </button>
+
+    <div id="searchMessage" class="message error"></div>
+
+    <!-- PRODUCT DETAILS -->
+    <div id="productResult" class="result">
+
+      <img
+        id="productPhoto"
+        class="product-photo"
+        alt="Product photo"
+        style="display:none;"
+      >
+
+      <div id="productName" class="product-name"></div>
+      <div id="productCodeResult" class="product-code"></div>
+      <div id="productPrice" class="product-price"></div>
+
+      <div class="detail-row">
+        <span class="detail-label">Unit</span>
+        <span id="productUnit" class="detail-value"></span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Description</span>
+        <span id="productDescription" class="detail-value"></span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PRODUCT CATALOG -->
+  <section class="panel">
+
+    <div class="catalog-heading">
+      <h2>PRODUCT CATALOG</h2>
+      <span id="catalogCount" class="catalog-count"></span>
+    </div>
+
+    <p class="description">
+      Browse our available products and view their details.
+    </p>
+
+    <button type="button" onclick="loadCatalog()">
+      VIEW ALL PRODUCTS
+    </button>
+
+    <input
+      type="text"
+      id="catalogSearch"
+      placeholder="Search by product name or code..."
+      autocomplete="off"
+      style="display:none; margin-top:14px;"
+      oninput="filterCatalog()"
+    >
+
+    <div id="catalogMessage" class="loading" style="display:none;">
+      Loading products...
+    </div>
+
+    <div id="catalogGrid" class="catalog-grid"></div>
+
+  </section>
+
+</main>
+
+<footer>
+  MIXCARICATURE | Product Information System
+</footer>
+
+<script>
+  const API_URL =
+    "https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
+
+  let html5QrCode = null;
+  let scannerRunning = false;
+
+  let catalogProducts = [];
+  let catalogLoaded = false;
+
+  // GENERAL HELPERS
+
+  function showMessage(elementId, message, type) {
+    const element = document.getElementById(elementId);
+    element.textContent = message;
+    element.className = "message " + type;
+    element.style.display = "block";
+  }
+
+  function hideMessage(elementId) {
+    document.getElementById(elementId).style.display = "none";
+  }
+
+  function formatPrice(value) {
+    if (value === null || value === undefined || value === "") {
+      return "";
+    }
+
+    const number = Number(String(value).replace(/,/g, ""));
+
+    if (!Number.isNaN(number)) {
+      return "₱" + number.toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    return String(value);
+  }
+
+  function getProductObject(response) {
+    if (!response) return null;
+
+    return (
+      response.product ||
+      response.data ||
+      response.result ||
+      response
+    );
+  }
+
+  function getField(product, possibleNames) {
+    if (!product) return "";
+
+    for (const name of possibleNames) {
+      if (
+        product[name] !== undefined &&
+        product[name] !== null
+      ) {
+        return product[name];
+      }
+    }
+
+    return "";
+  }
+
+  // MANUAL PRODUCT LOOKUP
+
+  function searchProduct() {
+    const code = document
+      .getElementById("productCode")
+      .value
+      .trim();
+
+    if (!code) {
+      showMessage(
+        "searchMessage",
+        "Please enter a product code.",
+        "error"
+      );
+      return;
+    }
+
+    hideMessage("searchMessage");
+    document.getElementById("productResult").style.display = "none";
+
+    showMessage(
+      "searchMessage",
+      "Searching product...",
+      "success"
+    );
+
+    const callbackName = "oceanicReceive";
+
+    window[callbackName] = function(response) {
+      delete window[callbackName];
+
+      if (!response || response.success !== true) {
+        hideMessage("searchMessage");
+
+        showMessage(
+          "searchMessage",
+          response && response.message
+            ? response.message
+            : "Product not found. Please check the product code.",
+          "error"
+        );
+
+        return;
+      }
+
+      const product = getProductObject(response);
+
+      if (!product) {
+        hideMessage("searchMessage");
+
+        showMessage(
+          "searchMessage",
+          "Product information could not be loaded.",
+          "error"
+        );
+
+        return;
+      }
+
+      displayProduct(product, code);
+      hideMessage("searchMessage");
+    };
+
+    const script = document.createElement("script");
+
+    script.src =
+      API_URL +
+      "?api=product&code=" +
+      encodeURIComponent(code) +
+      "&callback=" +
+      callbackName;
+
+    script.onerror = function() {
+      delete window[callbackName];
+      hideMessage("searchMessage");
+
+      showMessage(
+        "searchMessage",
+        "Unable to connect to the product database. Please try again.",
+        "error"
+      );
+    };
+
+    document.body.appendChild(script);
+  }
+
+  function displayProduct(product, searchedCode) {
+    const name = getField(product, [
+      "name", "productName", "product_name"
+    ]);
+
+    const code = getField(product, [
+      "code", "productCode", "product_code"
+    ]) || searchedCode;
+
+    const price = getField(product, [
+      "price", "productPrice", "product_price"
+    ]);
+
+    const unit = getField(product, [
+      "unit", "productUnit", "product_unit"
+    ]);
+
+    const description = getField(product, [
+      "description", "productDescription", "product_description"
+    ]);
+
+    const photo = getField(product, [
+      "photoUrl", "photoURL", "photo", "imageUrl",
+      "imageURL", "productPhoto", "product_photo"
+    ]);
+
+    document.getElementById("productName").textContent =
+      name || "Product";
+
+    document.getElementById("productCodeResult").textContent =
+      "PRODUCT CODE: " + code;
+
+    document.getElementById("productPrice").textContent =
+      formatPrice(price);
+
+    document.getElementById("productUnit").textContent =
+      unit || "Not specified";
+
+    document.getElementById("productDescription").textContent =
+      description || "No description available.";
+
+    const photoElement = document.getElementById("productPhoto");
+
+    if (photo) {
+      photoElement.src = photo;
+      photoElement.style.display = "block";
+
+      photoElement.onerror = function() {
+        photoElement.style.display = "none";
+      };
+    } else {
+      photoElement.style.display = "none";
+    }
+
+    document.getElementById("productResult").style.display = "block";
+
+    document.getElementById("productResult").scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  // BARCODE SCANNER
+
+  async function startScanner() {
+    if (scannerRunning) return;
+
+    const status = document.getElementById("scannerStatus");
+    status.textContent = "Starting camera...";
+
+    try {
+      html5QrCode = new Html5Qrcode("reader");
+
+      const config = {
+        fps: 10,
+        qrbox: {
+          width: 250,
+          height: 150
+        },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ]
+      };
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        function(decodedText) {
+          document.getElementById("productCode").value =
+            decodedText.trim();
+
+          stopScanner();
+          searchProduct();
+        },
+        function() {
+          // Ignore individual scan misses.
+        }
+      );
+
+      scannerRunning = true;
+      status.textContent = "Camera active. Point it at a barcode.";
+
+      document.getElementById("stopScannerButton").style.display =
+        "block";
+
+    } catch (error) {
+      status.textContent =
+        "Camera could not start. Please allow camera access and try again.";
+
+      console.error(error);
+    }
+  }
+
+  async function stopScanner() {
+    if (!html5QrCode || !scannerRunning) {
+      document.getElementById("stopScannerButton").style.display =
+        "none";
+      return;
+    }
+
+    try {
+      await html5QrCode.stop();
+      await html5QrCode.clear();
+    } catch (error) {
+      console.error(error);
+    }
+
+    scannerRunning = false;
+    html5QrCode = null;
+
+    document.getElementById("scannerStatus").textContent =
+      "Scanner is currently inactive.";
+
+    document.getElementById("stopScannerButton").style.display =
+      "none";
+  }
+
+  // PRODUCT CATALOG
+
+  function loadCatalog() {
+    const message = document.getElementById("catalogMessage");
+    const grid = document.getElementById("catalogGrid");
+
+    message.style.display = "block";
+    message.textContent = "Loading products...";
+    grid.innerHTML = "";
+
+    const callbackName = "mixcaricatureCatalogReceive";
+
+    window[callbackName] = function(response) {
+      delete window[callbackName];
+      message.style.display = "none";
+
+      if (
+        !response ||
+        response.success !== true ||
+        !Array.isArray(response.products)
+      ) {
+        message.style.display = "block";
+        message.textContent =
+          "Unable to load products. Please try again.";
+        return;
+      }
+
+      catalogProducts = response.products;
+      catalogLoaded = true;
+
+      document.getElementById("catalogSearch").style.display =
+        "block";
+
+      renderCatalog(catalogProducts);
+      document.getElementById("catalogSearch").value = "";
+    };
+
+    const script = document.createElement("script");
+
+    script.src =
+      API_URL +
+      "?api=catalog&callback=" +
+      callbackName;
+
+    script.onerror = function() {
+      delete window[callbackName];
+      message.style.display = "block";
+      message.textContent = "Connection error. Please try again.";
+    };
+
+    document.body.appendChild(script);
+  }
+
+  function renderCatalog(products) {
+    const grid = document.getElementById("catalogGrid");
+    const count = document.getElementById("catalogCount");
+
+    grid.innerHTML = "";
+
+    count.textContent =
+      products.length + (products.length === 1 ? " product" : " products");
+
+    if (!products.length) {
+      grid.innerHTML =
+        '<div class="empty-message">No products found.</div>';
+      return;
+    }
+
+    products.forEach(function(product) {
+      const card = document.createElement("div");
+      card.className = "catalog-card";
+
+      const image = document.createElement("img");
+      image.alt = product.name || "Product photo";
+
+      if (product.photoUrl) {
+        image.src = product.photoUrl;
+
+        image.onerror = function() {
+          image.style.display = "none";
+        };
+      } else {
+        image.style.display = "none";
+      }
+
+      const content = document.createElement("div");
+      content.className = "catalog-card-content";
+
+      const name = document.createElement("div");
+      name.className = "catalog-card-name";
+      name.textContent = product.name || "Unnamed product";
+
+      const code = document.createElement("div");
+      code.className = "catalog-card-code";
+      code.textContent = product.code || "";
+
+      const price = document.createElement("div");
+      price.className = "catalog-card-price";
+      price.textContent = formatPrice(product.price);
+
+      const description = document.createElement("div");
+      description.className = "catalog-card-description";
+      description.textContent = product.description || "";
+
+      const detailsButton = document.createElement("button");
+      detailsButton.type = "button";
+      detailsButton.textContent = "VIEW DETAILS";
+
+      detailsButton.onclick = function() {
+        document.getElementById("productCode").value =
+          product.code || "";
+
+        searchProduct();
+      };
+
+      content.appendChild(name);
+      content.appendChild(code);
+      content.appendChild(price);
+      content.appendChild(description);
+      content.appendChild(detailsButton);
+
+      card.appendChild(image);
+      card.appendChild(content);
+      grid.appendChild(card);
+    });
+  }
+
+  function filterCatalog() {
+    const searchText = document
+      .getElementById("catalogSearch")
+      .value
+      .trim()
+      .toLowerCase();
+
+    const filtered = catalogProducts.filter(function(product) {
+      const name = String(product.name || "").toLowerCase();
+      const code = String(product.code || "").toLowerCase();
+
+      return (
+        name.includes(searchText) ||
+        code.includes(searchText)
+      );
+    });
+
+    renderCatalog(filtered);
+  }
+
+  // ENTER KEY SUPPORT
+
+  document
+    .getElementById("productCode")
+    .addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        searchProduct();
+      }
+    });
+
+  // PWA SERVICE WORKER REGISTRATION
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function(registration) {
+          console.log(
+            "MIXCARICATURE service worker registered:",
+            registration.scope
+          );
+        })
+        .catch(function(error) {
+          console.error(
+            "Service worker registration failed:",
+            error
+          );
+        });
+    });
+  }
+
+</script>
+
+</body>
+</html>
