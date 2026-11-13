@@ -10,6 +10,7 @@
   <!-- PWA SETTINGS -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#073b49">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="MIXCARICATURE">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,9 +18,7 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -104,9 +103,7 @@
       margin-top: 5px;
     }
 
-    button:active {
-      opacity: 0.85;
-    }
+    button:active { opacity: 0.85; }
 
     button.secondary {
       background: #e4f1f3;
@@ -222,9 +219,7 @@
       margin-bottom: 12px;
     }
 
-    .catalog-heading h2 {
-      margin: 0;
-    }
+    .catalog-heading h2 { margin: 0; }
 
     .catalog-count {
       font-size: 12px;
@@ -255,9 +250,7 @@
       display: block;
     }
 
-    .catalog-card-content {
-      padding: 10px;
-    }
+    .catalog-card-content { padding: 10px; }
 
     .catalog-card-name {
       color: #073b49;
@@ -319,17 +312,9 @@
     }
 
     @media (max-width: 360px) {
-      .catalog-grid {
-        gap: 8px;
-      }
-
-      .catalog-card-content {
-        padding: 8px;
-      }
-
-      .catalog-card img {
-        height: 120px;
-      }
+      .catalog-grid { gap: 8px; }
+      .catalog-card-content { padding: 8px; }
+      .catalog-card img { height: 120px; }
     }
   </style>
 </head>
@@ -467,21 +452,17 @@
   let catalogProducts = [];
   let catalogLoaded = false;
 
-  // --------------------------------------------------
   // GENERAL HELPERS
-  // --------------------------------------------------
 
   function showMessage(elementId, message, type) {
     const element = document.getElementById(elementId);
-
     element.textContent = message;
     element.className = "message " + type;
     element.style.display = "block";
   }
 
   function hideMessage(elementId) {
-    const element = document.getElementById(elementId);
-    element.style.display = "none";
+    document.getElementById(elementId).style.display = "none";
   }
 
   function formatPrice(value) {
@@ -527,9 +508,7 @@
     return "";
   }
 
-  // --------------------------------------------------
   // MANUAL PRODUCT LOOKUP
-  // --------------------------------------------------
 
   function searchProduct() {
     const code = document
@@ -547,7 +526,6 @@
     }
 
     hideMessage("searchMessage");
-
     document.getElementById("productResult").style.display = "none";
 
     showMessage(
@@ -590,7 +568,6 @@
       }
 
       displayProduct(product, code);
-
       hideMessage("searchMessage");
     };
 
@@ -679,15 +656,12 @@
     });
   }
 
-  // --------------------------------------------------
   // BARCODE SCANNER
-  // --------------------------------------------------
 
   async function startScanner() {
     if (scannerRunning) return;
 
     const status = document.getElementById("scannerStatus");
-
     status.textContent = "Starting camera...";
 
     try {
@@ -725,7 +699,6 @@
       );
 
       scannerRunning = true;
-
       status.textContent = "Camera active. Point it at a barcode.";
 
       document.getElementById("stopScannerButton").style.display =
@@ -763,9 +736,7 @@
       "none";
   }
 
-  // --------------------------------------------------
   // PRODUCT CATALOG
-  // --------------------------------------------------
 
   function loadCatalog() {
     const message = document.getElementById("catalogMessage");
@@ -773,14 +744,12 @@
 
     message.style.display = "block";
     message.textContent = "Loading products...";
-
     grid.innerHTML = "";
 
     const callbackName = "mixcaricatureCatalogReceive";
 
     window[callbackName] = function(response) {
       delete window[callbackName];
-
       message.style.display = "none";
 
       if (
@@ -791,7 +760,6 @@
         message.style.display = "block";
         message.textContent =
           "Unable to load products. Please try again.";
-
         return;
       }
 
@@ -802,7 +770,6 @@
         "block";
 
       renderCatalog(catalogProducts);
-
       document.getElementById("catalogSearch").value = "";
     };
 
@@ -815,10 +782,8 @@
 
     script.onerror = function() {
       delete window[callbackName];
-
       message.style.display = "block";
-      message.textContent =
-        "Connection error. Please try again.";
+      message.textContent = "Connection error. Please try again.";
     };
 
     document.body.appendChild(script);
@@ -894,7 +859,6 @@
 
       card.appendChild(image);
       card.appendChild(content);
-
       grid.appendChild(card);
     });
   }
@@ -919,9 +883,7 @@
     renderCatalog(filtered);
   }
 
-  // --------------------------------------------------
   // ENTER KEY SUPPORT
-  // --------------------------------------------------
 
   document
     .getElementById("productCode")
@@ -930,6 +892,27 @@
         searchProduct();
       }
     });
+
+  // PWA SERVICE WORKER REGISTRATION
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function(registration) {
+          console.log(
+            "MIXCARICATURE service worker registered:",
+            registration.scope
+          );
+        })
+        .catch(function(error) {
+          console.error(
+            "Service worker registration failed:",
+            error
+          );
+        });
+    });
+  }
 
 </script>
 
