@@ -15,8 +15,6 @@
   <meta name="apple-mobile-web-app-title" content="MIXCARICATURE">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
   <style>
     * { box-sizing: border-box; }
 
@@ -111,16 +109,20 @@
       border: 1px solid #c8dadd;
     }
 
-    button.small-button {
-      padding: 10px;
-      font-size: 12px;
-    }
-
     #reader {
       width: 100%;
       overflow: hidden;
       border-radius: 10px;
       margin: 10px 0;
+      background: #101010;
+      min-height: 0;
+    }
+
+    #reader video {
+      width: 100%;
+      max-height: 480px;
+      object-fit: cover;
+      display: block;
     }
 
     #scannerStatus {
@@ -128,6 +130,34 @@
       color: #60777d;
       text-align: center;
       margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .scanner-tip {
+      background: #eef7f8;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      color: #526c72;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    .zoom-control {
+      display: none;
+      margin-top: 12px;
+    }
+
+    .zoom-control label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: #60777d;
+    }
+
+    .zoom-control input {
+      padding: 0;
+      margin: 5px 0;
     }
 
     .result {
@@ -331,6 +361,7 @@
   <!-- BARCODE SCANNER -->
   <section class="panel">
     <h2>SCAN PRODUCT BARCODE</h2>
+
     <p class="description">
       Scan the barcode on your product to view its information.
     </p>
@@ -343,6 +374,27 @@
 
     <div id="scannerStatus">
       Scanner is currently inactive.
+    </div>
+
+    <div id="zoomControl" class="zoom-control">
+      <label for="zoomSlider">
+        Camera zoom (if supported)
+      </label>
+      <input
+        type="range"
+        id="zoomSlider"
+        min="1"
+        max="3"
+        step="0.1"
+        value="1"
+        oninput="changeZoom(this.value)"
+      >
+    </div>
+
+    <div class="scanner-tip">
+      <strong>Scanning tips:</strong>
+      Hold your phone steady, use good lighting, keep the entire barcode
+      visible, and move the camera slowly closer until the bars look sharp.
     </div>
 
     <button
@@ -359,6 +411,7 @@
   <!-- MANUAL PRODUCT SEARCH -->
   <section class="panel">
     <h2>SEARCH PRODUCT</h2>
+
     <p class="description">
       You may also enter the product code manually.
     </p>
@@ -442,12 +495,21 @@
   MIXCARICATURE | Product Information System
 </footer>
 
-<script>
+<script type="module">
+
+  // ZXING BARCODE SCANNER
+  import {
+    BrowserMultiFormatReader
+  } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+
   const API_URL =
     "https://script.google.com/macros/s/AKfycbwB1diyWfuwfsRLYFR12dcvHpgQapSWh6GyiCvhdpQfD9QNeToT53F-DH4bR0XQHZE/exec";
 
-  let html5QrCode = null;
+  let codeReader = null;
+  let scannerControls = null;
   let scannerRunning = false;
+  let scanHandled = false;
+  let activeVideoTrack = null;
 
   let catalogProducts = [];
   let catalogLoaded = false;
@@ -534,7 +596,8 @@
       "success"
     );
 
-    const callbackName = "oceanicReceive";
+    const callbackName =
+      "oceanicReceive_" + Date.now();
 
     window[callbackName] = function(response) {
       delete window[callbackName];
@@ -656,85 +719,215 @@
     });
   }
 
-  // IMPROVED BARCODE SCANNER
+  // ZXING CAMERA SCANNER
 
   async function startScanner() {
     if (scannerRunning) return;
 
     const status = document.getElementById("scannerStatus");
-    status.textContent = "Starting camera...";
+    const readerElement = document.getElementById("reader");
+
+    status.textContent = "Requesting camera access...";
+    readerElement.innerHTML = "";
+    scanHandled = false;
+
+    document.getElementById("stopScannerButton").style.display =
+      "block";
+
+    document.getElementById("zoomControl").style.display =
+      "none";
 
     try {
-      html5QrCode = new Html5Qrcode("reader");
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+        throw new Error(
+          "Camera access requires HTTPS and a supported browser."
+        );
+      }
 
-      const config = {
-        fps: 15,
+      codeReader = new BrowserMultiFormatReader();
 
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-          Html5QrcodeSupportedFormats.QR_CODE
-        ]
+      const video = document.createElement("video");
+      video.setAttribute("autoplay", "true");
+      video.setAttribute("muted", "true");
+      video.setAttribute("playsinline", "true");
+      video.style.width = "100%";
+
+      readerElement.appendChild(video);
+
+      status.textContent =
+        "Starting high-resolution rear camera...";
+
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          aspectRatio: { ideal: 1.777 },
+          focusMode: { ideal: "continuous" }
+        }
       };
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        config,
+      scannerControls = await codeReader.decodeFromConstraints(
+        constraints,
+        video,
+        async function(result, error, controls) {
 
-        async function(decodedText) {
-          document.getElementById("productCode").value =
-            decodedText.trim();
+          if (result && !scanHandled) {
+            scanHandled = true;
 
-          await stopScanner();
-          searchProduct();
-        },
+            const scannedCode = result.getText().trim();
 
-        function() {
-          // Ignore individual scan misses.
+            if (!scannedCode) {
+              scanHandled = false;
+              return;
+            }
+
+            document.getElementById("productCode").value =
+              scannedCode;
+
+            status.textContent =
+              "Barcode detected: " + scannedCode;
+
+            await stopScanner();
+
+            searchProduct();
+          }
         }
       );
 
       scannerRunning = true;
 
-      status.textContent =
-        "Camera active. Position the barcode inside the camera view.";
+      activeVideoTrack =
+        video.srcObject &&
+        video.srcObject.getVideoTracks
+          ? video.srcObject.getVideoTracks()[0]
+          : null;
 
-      document.getElementById("stopScannerButton").style.display =
-        "block";
+      await configureCamera();
+
+      status.textContent =
+        "Scanner active. Keep the barcode steady and in focus.";
 
     } catch (error) {
-      status.textContent =
-        "Camera could not start. Please allow camera access and try again.";
+      console.error("Scanner error:", error);
 
-      console.error(error);
+      await stopScanner();
+
+      status.textContent =
+        "Camera/scanner error: " +
+        (error.message || "Unable to start camera.");
+
+      document.getElementById("stopScannerButton").style.display =
+        "none";
+    }
+  }
+
+  // CAMERA FOCUS AND ZOOM
+  // These settings are applied only if supported by the phone.
+
+  async function configureCamera() {
+    if (!activeVideoTrack) return;
+
+    try {
+      const capabilities = activeVideoTrack.getCapabilities
+        ? activeVideoTrack.getCapabilities()
+        : {};
+
+      const settings = activeVideoTrack.getSettings
+        ? activeVideoTrack.getSettings()
+        : {};
+
+      console.log("Camera settings:", settings);
+      console.log("Camera capabilities:", capabilities);
+
+      // Attempt continuous autofocus.
+      if (capabilities.focusMode &&
+          capabilities.focusMode.includes("continuous")) {
+
+        try {
+          await activeVideoTrack.applyConstraints({
+            advanced: [
+              { focusMode: "continuous" }
+            ]
+          });
+        } catch (error) {
+          console.log("Continuous focus unavailable:", error);
+        }
+      }
+
+      // Show zoom control only if the camera supports optical/digital zoom.
+      if (capabilities.zoom) {
+        const slider = document.getElementById("zoomSlider");
+
+        slider.min = capabilities.zoom.min || 1;
+        slider.max = Math.min(
+          capabilities.zoom.max || 3,
+          4
+        );
+
+        slider.step = capabilities.zoom.step || 0.1;
+        slider.value = Math.max(
+          slider.min,
+          settings.zoom || 1
+        );
+
+        document.getElementById("zoomControl").style.display =
+          "block";
+      }
+
+    } catch (error) {
+      console.log("Camera enhancement unavailable:", error);
+    }
+  }
+
+  async function changeZoom(value) {
+    if (!activeVideoTrack) return;
+
+    try {
+      await activeVideoTrack.applyConstraints({
+        advanced: [
+          { zoom: Number(value) }
+        ]
+      });
+    } catch (error) {
+      console.log("Zoom adjustment unavailable:", error);
     }
   }
 
   async function stopScanner() {
-    if (!html5QrCode || !scannerRunning) {
-      document.getElementById("stopScannerButton").style.display =
-        "none";
-      return;
+    try {
+      if (scannerControls) {
+        scannerControls.stop();
+      }
+    } catch (error) {
+      console.error("Scanner stop error:", error);
     }
 
     try {
-      await html5QrCode.stop();
-      await html5QrCode.clear();
+      if (activeVideoTrack) {
+        activeVideoTrack.stop();
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Camera stop error:", error);
     }
 
+    scannerControls = null;
+    codeReader = null;
+    activeVideoTrack = null;
     scannerRunning = false;
-    html5QrCode = null;
 
-    document.getElementById("scannerStatus").textContent =
-      "Scanner is currently inactive.";
+    document.getElementById("reader").innerHTML = "";
 
     document.getElementById("stopScannerButton").style.display =
       "none";
+
+    document.getElementById("zoomControl").style.display =
+      "none";
+
+    document.getElementById("scannerStatus").textContent =
+      "Scanner is currently inactive.";
   }
 
   // PRODUCT CATALOG
@@ -747,7 +940,8 @@
     message.textContent = "Loading products...";
     grid.innerHTML = "";
 
-    const callbackName = "mixcaricatureCatalogReceive";
+    const callbackName =
+      "mixcaricatureCatalogReceive_" + Date.now();
 
     window[callbackName] = function(response) {
       delete window[callbackName];
@@ -797,7 +991,8 @@
     grid.innerHTML = "";
 
     count.textContent =
-      products.length + (products.length === 1 ? " product" : " products");
+      products.length +
+      (products.length === 1 ? " product" : " products");
 
     if (!products.length) {
       grid.innerHTML =
@@ -883,6 +1078,15 @@
 
     renderCatalog(filtered);
   }
+
+  // EXPOSE FUNCTIONS FOR HTML BUTTONS
+
+  window.startScanner = startScanner;
+  window.stopScanner = stopScanner;
+  window.changeZoom = changeZoom;
+  window.searchProduct = searchProduct;
+  window.loadCatalog = loadCatalog;
+  window.filterCatalog = filterCatalog;
 
   // ENTER KEY SUPPORT
 
